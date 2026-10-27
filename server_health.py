@@ -1,23 +1,16 @@
+# psutil load the monitoring library 
+# psutil.virtual_memory() reads real RAM statistics.
+# psutil.disk_usage("C:\\") reads usage statistics for your C: drive.
+# memory.percent and disk.percent provide the utilization percentages.
+# f"..." is a Python f-string, which inserts variable values directly into text.
 
-def check_health(usage, metric):
-    if usage >= 90:
-        return f"CRITICAL - High {metric} usage"
-    elif usage > 80:
-        return f"WARNING - Investigate {metric} usage"
-    else:
-        return f"NORMAL - {metric} is healthy"
-
-
-servers = [
-    ("PROD-SERVER-01", 65, 70),
-    ("PROD-SERVER-02", 85, 88),
-    ("PROD-SERVER-03", 95, 92),
-]
-
-for server_name, cpu_usage, memory_usage in servers:
-    print("Server:", server_name)
-    print("CPU:", cpu_usage, "%")
-    print("CPU Status:", check_health(cpu_usage, "CPU"))
-    print("Memory:", memory_usage, "%")
-    print("Memory Status:", check_health(memory_usage, "memory"))
-    print("-" * 35)
+import psutil
+cpu_usage = psutil.cpu_percent(interval=2)
+# measures actual CPU utilization over a two second intervals.
+memory = psutil.virtual_memory()
+disk = psutil.disk_usage("C:\\")
+print("System Health Monitor")
+print("=" * 30)
+print(f"CPU Usage: {cpu_usage}%")
+print(f"Memory Usage: {memory.percent}%")
+print(f"Disk Usage (C:): {disk.percent}%")
