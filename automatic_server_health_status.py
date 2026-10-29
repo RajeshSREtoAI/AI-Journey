@@ -1,48 +1,82 @@
+
+import logging
 import psutil
+
+# Configure logging to save messages to a file and show them in the terminal
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    handlers=[
+        logging.FileHandler("system_health.log", encoding="utf-8"),
+        logging.StreamHandler(),
+    ],
+)
+
+
 def check_health(usage, metric):
-    if usage>= 90:
+    if usage >= 90:
         return f"CRITICAL - High {metric} usage"
     elif usage > 80:
         return f"WARNING - Investigate {metric} usage"
     else:
         return f"NORMAL - {metric} is healthy"
 
-cpu_usage = psutil.cpu_percent(interval=2)
-memory = psutil.virtual_memory()
-disk = psutil.disk_usage("C:\\")
 
-print("SYSTEM HEALTH MONITOR")
-print("=" * 40)
+def main():
+    cpu_usage = psutil.cpu_percent(interval=2)
+    memory = psutil.virtual_memory()
+    try:
+        disk = psutil.disk_usage("C:\\")
+    except OSError as error:
+        logging.error("Unable to read disk usage: %s", error)
+        return
 
-print(f"CPU Usage: {cpu_usage}%")
-print("CPU Status:", check_health(cpu_usage, "CPU"))
-print()
+    print("\nSYSTEM HEALTH MONITOR")
+    print("=" * 40)
 
-print(f"Memory Usage:{memory.percent}%")
-print("Memory Status:", check_health(memory.percent, "memory"))
-print()
+    metrics = [
+        ("CPU", cpu_usage),
+        ("Memory", memory.percent),
+        ("Disk (C:)", disk.percent),
+    ]
 
-print(f"Disk Usage (C:): {disk.percent}%")
-print("Disk Status:", check_health(disk.percent, "disk"))
+    statuses = []
+
+    for metric, usage in metrics:
+        status = check_health(usage, metric)
+        statuses.append(status)
+
+        print(f"{metric} Usage: {usage}%")
+        print(f"{metric} Status: {status}")
+        print("-" * 40)
+
+        # Save each metric and its status to the log
+        if status.startswith("CRITICAL"):
+            logging.critical(
+                "%s usage: %.1f%% | Status: %s",
+                metric, usage, status
+            )
+        elif status.startswith("WARNING"):
+            logging.warning(
+                "%s usage: %.1f%% | Status: %s",
+                metric, usage, status
+            )
+        else:
+            logging.info(
+                "%s usage: %.1f%% | Status: %s",
+                metric, usage, status
+            )
+
+    if any(status.startswith("CRITICAL") for status in statuses):
+        overall_status = "CRITICAL"
+    elif any(status.startswith("WARNING") for status in statuses):
+        overall_status = "WARNING"
+    else:
+        overall_status = "NORMAL"
+
+    print("OVERALL SYSTEM STATUS:", overall_status)
+    logging.info("Overall system status: %s", overall_status)
 
 
-
-# Overall system health
-if (
-    cpu_usage >= 90
-    or memory.percent >= 90
-    or disk.percent >= 90
-):
-    overall_status = "CRITICAL"
-elif (
-    cpu_usage > 80
-    or memory.percent > 80
-    or disk.percent > 80
-):
-    overall_status = "WARNING"
-else:
-    overall_status = "NORMAL"
-
-print()
-print("=" * 40)
-print("OVERALL SYSTEM STATUS:", overall_status)
+if __name__ == "__main__":
+    main()
